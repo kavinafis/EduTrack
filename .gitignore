@@ -150,3 +150,79 @@ media/result_sheet/*
 # Custom
 dump.rdb
 *.DS_Store
+
+
+
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.swp
+*.swo
+*.bak
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django
+db.sqlite3
+*.sqlite3
+*.log
+!media/default.png
+*.pot
+*.po
+*.mo
+
+# Secrets
+*.env
+.env.*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Logs
+*.log
+*.out
+*.err
+
+# Testing
+.coverage
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# Build
+*.egg
+*.egg-info/
+dist/
+build/
+*.manifest
+*.spec
+
+# Others
+local_note.txt
+dump.rdb
