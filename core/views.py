@@ -2,6 +2,8 @@ import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+import os
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +19,8 @@ from accounts.models import Student
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
-from course.models import Course  # Import the Course model
-from result.models import TakenCourse  # Import the TakenCourse model
+from course.models import Course  
+from result.models import TakenCourse  
 from decimal import Decimal
 
 
@@ -238,7 +240,7 @@ def performance_prediction_view(request):
 
             try:
                 student = Student.objects.get(pk=student_id)
-                model_path = "s:/Python/Capstone Project Student Performance/EduTrack/models/performance_model.pkl"
+                model_path = os.path.join(settings.BASE_DIR, "models", "performance_model.pkl")
                 logger.debug(f"Loading model from {model_path}")
                 with open(model_path, "rb") as model_file:
                     model = pickle.load(model_file)
