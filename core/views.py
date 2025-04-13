@@ -327,9 +327,18 @@ def performance_prediction_view(request):
                     sample_question_papers_practiced,
                 ]
                 logger.debug(f"Input data for prediction: {input_data}")
-                prediction = model.predict([input_data])[0]
+                prediction = round(model.predict([input_data])[0], 2)  # Round to 2 decimal places
                 logger.info(f"Prediction result: {prediction}")
-                return JsonResponse({"prediction": prediction})
+                return JsonResponse({
+                    "prediction": prediction,
+                    "input_data": {
+                        "hours_studied": hours_studied,
+                        "previous_scores": previous_scores,
+                        "extracurricular_activities": extracurricular_activities,
+                        "sleep_hours": sleep_hours,
+                        "sample_question_papers_practiced": sample_question_papers_practiced,
+                    }
+                })
 
             except Student.DoesNotExist:
                 logger.error(f"Student with ID {student_id} not found.")
