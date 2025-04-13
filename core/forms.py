@@ -1,6 +1,20 @@
 from django import forms
 from .models import NewsAndEvents, Session, Semester, SEMESTER
 
+SEMESTER = [
+    ("First", "First"),
+    ("Second", "Second"),
+    ("Third", "Third"),
+    ("Fourth", "Fourth"),
+    ("Fifth", "Fifth"),
+    ("Sixth", "Sixth"),
+    ("Seventh", "Seventh"),
+    ("Eighth", "Eighth"),
+    ("Ninth", "Ninth"),
+    ("Tenth", "Tenth"),
+    ("Eleventh", "Eleventh"),
+    ("Twelfth", "Twelfth"),
+]
 
 # news and events
 class NewsAndEventsForm(forms.ModelForm):
