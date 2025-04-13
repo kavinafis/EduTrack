@@ -8,7 +8,7 @@ SEMESTER = [
     ("Fourth", "Fourth"),
     ("Fifth", "Fifth"),
     ("Sixth", "Sixth"),
-    ("Seventh", "Seventh"),
+    ("Seventh",     git commit -m "Update semester functionality to support up to twelve semesters""Seventh"),
     ("Eighth", "Eighth"),
     ("Ninth", "Ninth"),
     ("Tenth", "Tenth"),
