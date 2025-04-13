@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}Performance Prediction | Learning Management System{% endblock title %}
+
+{% block content %}
+<h1>Performance Prediction</h1>
+<form id="prediction-form" method="POST">
+    {% csrf_token %}
+    <label for="student_id">{% trans "Select Student" %}</label>
+    <select id="student_id" name="student_id" class="form-control">
+        <!-- Debug output -->
+        {% if not students %}
+        <option value="">No students found in database</option>
+        {% else %}
+        <option value="">-- Select Student --</option>
+        {% endif %}
+        {% for student in students %}
+        <option value="{{ student.id }}">{{ student.student.username }}</option>
+        {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary mt-3">{% trans "Predict" %}</button>
+</form>
+
+<div id="prediction-result" class="mt-3"></div>
+
+<script>
+    document.getElementById("prediction-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const studentId = document.getElementById("student_id").value;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch("{% url 'performance_prediction_view' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({ student_id: studentId }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("prediction-result").innerText = `Prediction: ${data.prediction}`;
+        })
+        .catch(error => console.error("Error:", error));
+    });
+</script>
+{% endblock content %}

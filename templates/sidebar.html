@@ -58,6 +58,9 @@
 			<li class="{% if request.path == ucl %}active{% endif %}">
 				<a href="{% url 'user_course_list' %}"><i class="fas fa-book"></i>{% trans 'My Courses' %}</a>
 			</li>
+			<li class="{% if request.path == '/performance-prediction/' %}active{% endif %}">
+				<a href="{% url 'performance_prediction_view' %}"><i class="fas fa-chart-line"></i>{% trans 'Performance Prediction' %}</a>
+			</li>
 			{% endif %}
 
 			{% if request.user.is_superuser or request.user.is_lecturer %}

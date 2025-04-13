@@ -7,6 +7,14 @@ from accounts.models import User, Student
 from .forms import SessionForm, SemesterForm, NewsAndEventsForm
 from .models import NewsAndEvents, ActivityLog, Session, Semester
 
+import pickle
+from django.http import JsonResponse
+from django.shortcuts import render
+from accounts.models import Student
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+import json
+
 
 # ########################################################
 # News & Events
@@ -207,3 +215,58 @@ def unset_current_semester():
     if current_semester:
         current_semester.is_current_semester = False
         current_semester.save()
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+@login_required
+def performance_prediction_view(request):
+    try:
+        if request.method == "POST":
+            data = json.loads(request.body)
+            student_id = data.get("student_id")
+            student = Student.objects.get(pk=student_id)
+
+            try:
+                # Load the model
+                model_path = "s:/Python/Capstone Project Student Performance/EduTrack/models/performance_model.pkl"
+                with open(model_path, "rb") as model_file:
+                    model = pickle.load(model_file)
+
+                # Prepare input data for prediction
+                input_data = [
+                    student.level,
+                    student.program.id,
+                    student.gpa,
+                ]
+                prediction = model.predict([input_data])[0]
+                return JsonResponse({"prediction": prediction})
+
+            except Exception as e:
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")  # Convert warnings to exceptions
+                    try:
+                        # Try loading model again to catch the warning as exception
+                        with open(model_path, "rb") as model_file:
+                            model = pickle.load(model_file)
+                    except Exception as e:
+                        print(f"Model loading failed: {str(e)}")  # Debug output
+                        return JsonResponse({
+                            "error": "Prediction failed - version mismatch",
+                            "message": str(e),
+                            "fallback_prediction": "B"
+                        }, status=200)
+
+
+    except Exception as e:
+        return JsonResponse({
+            "error": "Request processing failed",
+            "message": str(e),
+            "fallback_prediction": "B"
+        }, status=200)
+
+    students = Student.objects.all().select_related('program')
+    print(f"Students queried: {students.count()}")  # Debug output
+    for student in students:
+        print(f"Student: {student.student.username} (ID: {student.id})")  # Debug output
+    return render(request, "core/performance_prediction.html", {"students": students})
