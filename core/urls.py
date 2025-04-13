@@ -15,6 +15,7 @@ from .views import (
     semester_delete_view,
     dashboard_view,
     performance_prediction_view,
+    add_sample_students,
 )
 
 
@@ -34,4 +35,5 @@ urlpatterns = [
     path("semester/<int:pk>/delete/", semester_delete_view, name="delete_semester"),
     path("dashboard/", dashboard_view, name="dashboard"),
     path("performance-prediction/", performance_prediction_view, name="performance_prediction_view"),
+    path('add-sample-students/', add_sample_students, name='add_sample_students'),
 ]

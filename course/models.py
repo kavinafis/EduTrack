@@ -62,7 +62,7 @@ class Course(models.Model):
     slug = models.SlugField(unique=True, blank=True)
     title = models.CharField(max_length=200)
     code = models.CharField(max_length=200, unique=True)
-    credit = models.IntegerField(default=0)
+    credit = models.IntegerField(default=3)  # Ensure credit field exists with a default value
     summary = models.TextField(max_length=200, blank=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE)
     level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES)

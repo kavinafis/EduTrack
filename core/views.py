@@ -1,6 +1,9 @@
+import logging
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+
+logger = logging.getLogger(__name__)
 
 from accounts.decorators import admin_required, lecturer_required
 from accounts.models import User, Student
@@ -14,6 +17,9 @@ from accounts.models import Student
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+from course.models import Course  # Import the Course model
+from result.models import TakenCourse  # Import the TakenCourse model
+from decimal import Decimal
 
 
 # ########################################################
@@ -21,6 +27,7 @@ import json
 # ########################################################
 @login_required
 def home_view(request):
+    logger.debug(f"Home view accessed by {request.user}")
     items = NewsAndEvents.objects.all().order_by("-updated_date")
     context = {
         "title": "News & Events",
@@ -220,53 +227,171 @@ def unset_current_semester():
 @method_decorator(csrf_exempt, name='dispatch')
 @login_required
 def performance_prediction_view(request):
+    logger.debug(f"Performance prediction view accessed by {request.user}")
     try:
         if request.method == "POST":
             data = json.loads(request.body)
             student_id = data.get("student_id")
-            student = Student.objects.get(pk=student_id)
+            if not student_id:
+                logger.error("Student ID is missing in the request.")
+                return JsonResponse({"error": "Student ID is required."}, status=400)
 
             try:
-                # Load the model
+                student = Student.objects.get(pk=student_id)
                 model_path = "s:/Python/Capstone Project Student Performance/EduTrack/models/performance_model.pkl"
+                logger.debug(f"Loading model from {model_path}")
                 with open(model_path, "rb") as model_file:
                     model = pickle.load(model_file)
 
-                # Prepare input data for prediction
+                # Ensure student has level and program
+                if not student.level or not student.program:
+                    logger.error(
+                        f"Student with ID {student_id} is missing level or program."
+                    )
+                    return JsonResponse(
+                        {
+                            "error": "Student level or program is missing.",
+                            "details": "Please ensure the student is assigned a valid level and program.",
+                        },
+                        status=400,
+                    )
+
+                # Handle missing gpa attribute
+                gpa = getattr(student, "gpa", None)
+                if gpa is None:
+                    logger.debug(f"Calculating GPA for student with ID {student_id}.")
+                    taken_courses = student.takencourse_set.all()
+                    total_points = sum(tc.point for tc in taken_courses)
+                    total_credits = sum(tc.course.credit for tc in taken_courses)
+
+                    if total_credits == 0:
+                        logger.warning(
+                            f"Student with ID {student_id} ({student.student.get_full_name}) has no registered courses with credits. Attempting to assign default credits."
+                        )
+                        # Assign default credits
+                        default_course = Course.objects.filter(
+                            level=student.level, program=student.program, credit__gt=0
+                        ).first()
+                        if not default_course:
+                            logger.warning(
+                                f"No valid default course found for student with ID {student_id} ({student.student.get_full_name}). Creating a fallback default course."
+                            )
+                            default_course = Course.objects.create(
+                                title="Default Course",
+                                code="DEFAULT101",
+                                credit=3,
+                                program=student.program,
+                                level=student.level,
+                                semester="First",
+                                summary="Fallback default course for GPA calculation.",
+                            )
+                            logger.info(
+                                f"Fallback default course '{default_course.title}' created and assigned to student {student_id}."
+                            )
+
+                        TakenCourse.objects.create(
+                            student=student, course=default_course, point=0
+                        )
+                        total_credits = default_course.credit
+                        logger.info(
+                            f"Default course '{default_course.title}' assigned to student {student_id}."
+                        )
+
+                    if total_credits > 0:
+                        gpa = round(total_points / total_credits, 2)
+                        logger.debug(f"Calculated GPA for student {student_id}: {gpa}")
+                    else:
+                        logger.error(
+                            f"Student with ID {student_id} ({student.student.get_full_name}) still has no credits. Unable to calculate GPA."
+                        )
+                        return JsonResponse(
+                            {
+                                "error": "Student GPA cannot be calculated.",
+                                "details": f"The student {student.student.get_full_name} has no registered courses with credits.",
+                            },
+                            status=400,
+                        )
+
+                # Ensure all required attributes are present
+                hours_studied = getattr(student, "hours_studied", 0.00)
+                previous_scores = getattr(student, "previous_scores", 0.00)
+                extracurricular_activities = getattr(student, "extracurricular_activities", 0)
+                sleep_hours = getattr(student, "sleep_hours", 9.00)
+                sample_question_papers_practiced = getattr(student, "sample_question_papers_practiced", 0)
+
                 input_data = [
-                    student.level,
-                    student.program.id,
-                    student.gpa,
+                    hours_studied,
+                    previous_scores,
+                    extracurricular_activities,
+                    sleep_hours,
+                    sample_question_papers_practiced,
                 ]
+                logger.debug(f"Input data for prediction: {input_data}")
                 prediction = model.predict([input_data])[0]
+                logger.info(f"Prediction result: {prediction}")
                 return JsonResponse({"prediction": prediction})
 
+            except Student.DoesNotExist:
+                logger.error(f"Student with ID {student_id} not found.")
+                return JsonResponse({"error": "Student not found."}, status=404)
+            except FileNotFoundError:
+                logger.error(f"Model file not found at {model_path}.")
+                return JsonResponse({"error": "Model file not found."}, status=500)
             except Exception as e:
-                import warnings
-                with warnings.catch_warnings():
-                    warnings.simplefilter("error")  # Convert warnings to exceptions
-                    try:
-                        # Try loading model again to catch the warning as exception
-                        with open(model_path, "rb") as model_file:
-                            model = pickle.load(model_file)
-                    except Exception as e:
-                        print(f"Model loading failed: {str(e)}")  # Debug output
-                        return JsonResponse({
-                            "error": "Prediction failed - version mismatch",
-                            "message": str(e),
-                            "fallback_prediction": "B"
-                        }, status=200)
+                logger.exception(f"Unexpected error during prediction: {str(e)}")
+                return JsonResponse({"error": "Prediction failed.", "message": str(e)}, status=500)
 
-
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON data received.")
+        return JsonResponse({"error": "Invalid JSON data."}, status=400)
     except Exception as e:
-        return JsonResponse({
-            "error": "Request processing failed",
-            "message": str(e),
-            "fallback_prediction": "B"
-        }, status=200)
+        logger.exception(f"Unexpected error: {str(e)}")
+        return JsonResponse({"error": "An unexpected error occurred.", "message": str(e)}, status=500)
 
-    students = Student.objects.all().select_related('program')
-    print(f"Students queried: {students.count()}")  # Debug output
-    for student in students:
-        print(f"Student: {student.student.username} (ID: {student.id})")  # Debug output
+    students = Student.objects.all().select_related('program').order_by('student__username')
+    logger.debug(f"Number of students retrieved: {students.count()}")
     return render(request, "core/performance_prediction.html", {"students": students})
+
+
+@login_required
+@admin_required
+def add_sample_students(request):
+    """Add 10 sample students to the database."""
+    from accounts.models import User, Student
+    from course.models import Program
+
+    program = Program.objects.first()  # Assign the first program as default
+    if not program:
+        messages.error(request, "No program found. Please create a program first.")
+        return redirect("dashboard")
+
+    students_data = [
+        {"username": f"student{i}", "first_name": f"First{i}", "last_name": f"Last{i}", "email": f"student{i}@example.com"}
+        for i in range(1, 11)
+    ]
+
+    for student_data in students_data:
+        user, created = User.objects.get_or_create(
+            username=student_data["username"],
+            defaults={
+                "first_name": student_data["first_name"],
+                "last_name": student_data["last_name"],
+                "email": student_data["email"],
+                "is_student": True,
+            },
+        )
+        if created:
+            Student.objects.create(
+                student=user,
+                level="Bachelor",
+                program=program,
+                gpa=Decimal("0.00"),
+                hours_studied=Decimal("7.00"),
+                previous_scores=Decimal("99.00"),
+                extracurricular_activities=1,
+                sleep_hours=Decimal("9.00"),
+                sample_question_papers_practiced=5,
+            )
+
+    messages.success(request, "10 sample students have been added successfully.")
+    return redirect("performance_prediction_view")

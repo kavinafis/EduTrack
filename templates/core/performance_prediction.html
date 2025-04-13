@@ -8,14 +8,9 @@
     {% csrf_token %}
     <label for="student_id">{% trans "Select Student" %}</label>
     <select id="student_id" name="student_id" class="form-control">
-        <!-- Debug output -->
-        {% if not students %}
-        <option value="">No students found in database</option>
-        {% else %}
         <option value="">-- Select Student --</option>
-        {% endif %}
         {% for student in students %}
-        <option value="{{ student.id }}">{{ student.student.username }}</option>
+        <option value="{{ student.id }}">{{ student.student.username }} - {{ student.student.get_full_name }}</option>
         {% endfor %}
     </select>
     <button type="submit" class="btn btn-primary mt-3">{% trans "Predict" %}</button>
@@ -25,9 +20,14 @@
 
 <script>
     document.getElementById("prediction-form").addEventListener("submit", function (e) {
-        e.preventDefault();
+        e.preventDefault(); // Prevent default form submission
         const studentId = document.getElementById("student_id").value;
         const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        if (!studentId) {
+            alert("Please select a student."); // Alert if no student is selected
+            return;
+        }
 
         fetch("{% url 'performance_prediction_view' %}", {
             method: "POST",
@@ -37,11 +37,23 @@
             },
             body: JSON.stringify({ student_id: studentId }),
         })
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById("prediction-result").innerText = `Prediction: ${data.prediction}`;
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
         })
-        .catch(error => console.error("Error:", error));
+        .then(data => {
+            if (data.error) {
+                alert(`Error: ${data.message}`); // Display error message from backend
+            } else {
+                document.getElementById("prediction-result").innerText = `Prediction: ${data.prediction}`;
+            }
+        })
+        .catch(error => {
+            console.error("Error:", error); // Log any errors to the console
+            alert("An error occurred while processing your request.");
+        });
     });
 </script>
 {% endblock content %}

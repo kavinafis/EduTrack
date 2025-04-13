@@ -153,6 +153,27 @@ class Student(models.Model):
     # id_number = models.CharField(max_length=20, unique=True, blank=True)
     level = models.CharField(max_length=25, choices=LEVEL, null=True)
     program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True)
+    gpa = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True, default=0.00
+    )  # Ensure GPA field exists with a default value
+    hours_studied = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, default=0.00
+    )
+    previous_scores = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, default=0.00
+    )
+    extracurricular_activities = models.IntegerField(
+        null=True, blank=True, default=0
+    )  # Number of activities
+    sleep_hours = models.DecimalField(
+        max_digits=4, decimal_places=2, null=True, blank=True, default=8.00
+    )
+    sample_question_papers_practiced = models.IntegerField(
+        null=True, blank=True, default=0
+    )
+    performance_index = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True, default=0.00
+    )
 
     objects = StudentManager()
 
