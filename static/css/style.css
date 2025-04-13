@@ -1,0 +1,19 @@
+/* ...existing code... */
+
+.dropdown-menu {
+    max-height: none !important;
+    /* Ensure no height restriction */
+    overflow: visible !important;
+    /* Prevent scrolling */
+    z-index: 1050;
+    /* Ensure it appears above other elements */
+}
+
+/* Optional: Adjust padding or spacing for better visibility */
+.dropdown-item {
+    padding: 10px 15px;
+    white-space: nowrap;
+    /* Prevent text wrapping */
+}
+
+/* ...existing code... */
