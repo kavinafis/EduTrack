@@ -41,11 +41,10 @@
                 <td> {{ forloop.counter }}.</td>
                 <td>{{ semester.semester }}</td>
                 <th>
-                    {% if semester.is_current_semester == False %}
+                    {% if not semester.is_current_semester %}
                     <i class="fas fa-times-circle fa-1-5x danger"></i>
                     {% else %}
                     <i class="fas fa-check-circle fa-1-5x"></i>
-                    <i class="icon-times-circle"></i>
                     {% endif %}
                 </th>
                 <td>{{ semester.session }}</td>
