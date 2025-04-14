@@ -242,8 +242,17 @@ def performance_prediction_view(request):
                 student = Student.objects.get(pk=student_id)
                 model_path = os.path.join(settings.BASE_DIR, "models", "performance_model.pkl")
                 logger.debug(f"Loading model from {model_path}")
-                with open(model_path, "rb") as model_file:
-                    model = pickle.load(model_file)
+                try:
+                    with open(model_path, "rb") as model_file:
+                        model = pickle.load(model_file)
+                except Exception as e:
+                    logger.error(f"Failed to load model: {str(e)}")
+                    return JsonResponse({"error": "Failed to load model.", "message": str(e)}, status=500)
+
+                # Ensure the model has a valid predict method
+                if not hasattr(model, "predict") or not callable(model.predict):
+                    logger.error("Loaded model does not have a valid 'predict' method.")
+                    return JsonResponse({"error": "Invalid model file."}, status=500)
 
                 # Ensure student has level and program
                 if not student.level or not student.program:
